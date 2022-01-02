@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     json_file_data = json_parser(json_file) # Store JSON Data from arg File.
 
-    current_mean = 0.0 # Init Mean Default Value.
+    current_mean = 0 # Init Mean Default Value.
     current_ts = None # Init Current timestamp Default Value.
     deq = deque() # Init Deque Default Value.
     res = dict() # Init Result Default Value.
@@ -30,26 +30,21 @@ if __name__ == "__main__":
 
         if len(deq) == 0:
             current_ts = datetime(timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute, 0)
-            file.write("%s\r\n" % json.dumps({'date': current_ts.strftime('%Y-%m-%d %H:%M:%S'), 'average_delivery_time': current_mean}))
+            file.write(f"{json.dumps({'date': current_ts.strftime('%Y-%m-%d %H:%M:%S'), 'average_delivery_time': current_mean})}\n")
             current_ts += timedelta(minutes=1)
 
         while current_ts < timestamp:
-            while deq and datetime.strptime(deq[0]['timestamp'], '%Y-%m-%d %H:%M:%S.%f') < current_ts - timedelta(minutes=args.window_size):
+            if deq and datetime.strptime(deq[0]['timestamp'], '%Y-%m-%d %H:%M:%S.%f') < current_ts - timedelta(minutes=args.window_size):
                 deq_v = deq.popleft()
-                if deq:
-                    current_mean -= (deq_v['duration'] - current_mean)/len(deq)
-                else:
-                    current_mean = 0
-            file.write("%s\r\n" % json.dumps({'date': current_ts.strftime('%Y-%m-%d %H:%M:%S'), 'average_delivery_time': current_mean}))
+                current_mean -= (deq_v['duration'] - current_mean)/len(deq) if deq else 0
+            file.write(f"{json.dumps({'date': current_ts.strftime('%Y-%m-%d %H:%M:%S'), 'average_delivery_time': current_mean})}\n")
             current_ts += timedelta(minutes=1)
         
         deq.append(json_data)
         current_mean += (json_data['duration'] - current_mean)/len(deq)
         
-    res['date'] = current_ts.strftime('%Y-%m-%d %H:%M:%S')
-    res['average_delivery_time'] = current_mean
-        
-    file.write(f"{json.dumps(res)}\n")
+    file.write(f"{json.dumps({'date': current_ts.strftime('%Y-%m-%d %H:%M:%S'), 'average_delivery_time': current_mean})}\n")     
     file.close()
+    
     print(f"FILE {file.name} CREATED SUCESSFULLY...")
     print("END...")
